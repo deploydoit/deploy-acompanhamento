@@ -354,30 +354,26 @@ class App {
       this.stateManager._recalculateExpectedDates();
       this.stateManager._emit('clients-updated', this.stateManager.getClients());
 
-      // Write to Firebase (async, non-blocking for UI)
-      try {
-        for (const client of mergeResult.added) {
-          await this.firebaseService.writeClient(client);
-        }
-        for (const client of mergeResult.updated) {
-          await this.firebaseService.writeClient(client);
-        }
-      } catch (fbErr) {
-        console.warn('Firebase write failed, data saved locally:', fbErr.message);
-      }
-
-      // Register import date
+      // Show summary modal immediately (don't wait for Firebase)
       const now = this._formatDateTime(new Date());
-      try {
-        await this.firebaseService.setLastImportDate('projetos', now);
-      } catch (e) { /* ignore */ }
-
-      // Show summary modal
       this._showSummaryModal('Importação de Projetos', summary);
 
       // Update the button with last import date
       const btn = document.getElementById('btn-import-projects');
       if (btn) this._updateImportDateDisplay(btn, now);
+
+      // Write ALL to Firebase in one batch (non-blocking, in background)
+      try {
+        const updates = {};
+        allClients.forEach(c => {
+          const { id, ...data } = c;
+          updates[`clients/${id}`] = data;
+        });
+        updates['metadata/lastImport_projetos'] = now;
+        this.firebaseService.db.ref().update(updates);
+      } catch (fbErr) {
+        console.warn('Firebase batch write failed:', fbErr.message);
+      }
 
     } catch (err) {
       this._showErrorModal('Erro na Importação', [
@@ -412,22 +408,8 @@ class App {
       const existingClients = this.stateManager.getClients();
       const matchResult = this.importService.matchEventsToClients(validation.valid, existingClients);
 
-      // Apply pre-filled follow-up data for matched events
-      for (const match of matchResult.vinculados) {
-        if (match.slotIndex >= 0 && match.slotIndex < 4) {
-          await this.firebaseService.writeFollowUp(
-            match.client.id,
-            match.slotIndex,
-            match.followUpData
-          );
-        }
-      }
-
-      // Register import date
+      // Show summary immediately
       const now = this._formatDateTime(new Date());
-      await this.firebaseService.setLastImportDate('eventos', now);
-
-      // Show summary
       this._showSummaryModal('Importação de Eventos', {
         added: matchResult.vinculados.length,
         updated: matchResult.novos.length,
@@ -444,6 +426,24 @@ class App {
       // Update button date
       const btn = document.getElementById('btn-import-events');
       if (btn) this._updateImportDateDisplay(btn, now);
+
+      // Write ALL follow-ups to Firebase in one batch (background)
+      try {
+        const updates = {};
+        for (const match of matchResult.vinculados) {
+          if (match.slotIndex >= 0 && match.slotIndex < 4) {
+            const membro = localStorage.getItem('membro_selecionado') || 'Sistema';
+            updates[`clients/${match.client.id}/followUps/${match.slotIndex}`] = {
+              ...match.followUpData,
+              ultima_edicao: { membro, timestamp: Date.now() }
+            };
+          }
+        }
+        updates['metadata/lastImport_eventos'] = now;
+        this.firebaseService.db.ref().update(updates);
+      } catch (fbErr) {
+        console.warn('Firebase batch write failed:', fbErr.message);
+      }
 
     } catch (err) {
       this._showErrorModal('Erro na Importação', [
