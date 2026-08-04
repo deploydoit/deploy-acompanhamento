@@ -188,6 +188,12 @@ export class ImportService {
         return;
       }
 
+      // Only import clients with status "Acompanhamento" or "Produção"
+      const status = (normalizedRow['status_projeto'] || '').toLowerCase().trim();
+      if (status !== 'acompanhamento' && status !== 'produção' && status !== 'producao' && status !== 'producao') {
+        return; // Skip silently — not an error, just not relevant
+      }
+
       valid.push(normalizedRow);
     });
 
