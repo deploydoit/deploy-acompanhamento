@@ -27,26 +27,25 @@ beforeEach(() => {
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
 const REQUIRED_PROJECT_COLUMNS = [
-  'código', 'nome', 'cliente', 'email', 'telefone', 'líder',
-  'cidade', 'UF', 'contrato', 'status_projeto', 'inicio_capacitacao', 'fim_capacitacao'
+  'cód', 'nome', 'cliente', 'e-mail do cliente', 'telefone do cliente', 'líder',
+  'cidade', 'uf', 'contrato', 'status', 'início capacitação'
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
 function createFullProjectRow(overrides = {}) {
   return {
-    'código': 1000,
+    'Cód': 1000,
     'nome': 'Test Company [test-slug]',
     'cliente': 'Test Company',
-    'email': 'test@example.com',
-    'telefone': '+55 11 99999-0000',
+    'E-mail do Cliente': 'test@example.com',
+    'Telefone do Cliente': '+55 11 99999-0000',
     'líder': 'Bruno Hideo Toyama',
     'cidade': 'São Paulo',
     'UF': 'SP',
     'contrato': '01/01/2026',
-    'status_projeto': 'Acompanhamento',
-    'inicio_capacitacao': '2026-01-01',
-    'fim_capacitacao': '2026-01-10',
+    'Status': 'Acompanhamento',
+    'Início Capacitação': '2026-01-01',
     ...overrides
   };
 }

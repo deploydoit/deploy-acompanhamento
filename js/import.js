@@ -3,14 +3,69 @@
  * Handles import of Planilha_Projetos and Planilha_Eventos
  */
 
-// Required columns for project import
+// Required columns for project import (mapped from DOit spreadsheet)
+// The spreadsheet uses different column names than our internal format.
+// We map them flexibly using COLUMN_ALIASES below.
+// "data realizado" is OPTIONAL — if absent, fim_capacitacao = inicio_capacitacao + 5 days
 const REQUIRED_PROJECT_COLUMNS = [
-  'código', 'nome', 'cliente', 'email', 'telefone', 'líder',
-  'cidade', 'UF', 'contrato', 'status_projeto', 'inicio_capacitacao', 'fim_capacitacao'
+  'cód', 'nome', 'cliente', 'e-mail do cliente', 'telefone do cliente', 'líder',
+  'cidade', 'uf', 'contrato', 'status', 'início capacitação'
 ];
 
+// Maps spreadsheet column names (lowercase) → internal field names
+const COLUMN_ALIASES = {
+  'cód': 'código',
+  'cod': 'código',
+  'código': 'código',
+  'nome': 'nome',
+  'cliente': 'cliente',
+  'e-mail do cliente': 'email',
+  'email do cliente': 'email',
+  'email': 'email',
+  'telefone do cliente': 'telefone',
+  'telefone': 'telefone',
+  'líder': 'líder',
+  'lider': 'líder',
+  'cidade': 'cidade',
+  'uf': 'uf',
+  'contrato': 'contrato',
+  'status': 'status_projeto',
+  'status_projeto': 'status_projeto',
+  'início capacitação': 'inicio_capacitacao',
+  'inicio capacitação': 'inicio_capacitacao',
+  'inicio_capacitacao': 'inicio_capacitacao',
+  'data realizado': 'fim_capacitacao',
+  'fim_capacitacao': 'fim_capacitacao',
+  'fim capacitação': 'fim_capacitacao',
+  'app (url)': 'app_url',
+  'modalidade': 'modalidade',
+};
+
 // Required columns for event import
+// Accepts common variations via EVENT_COLUMN_ALIASES
 const REQUIRED_EVENT_COLUMNS = ['data', 'nome_evento', 'dono'];
+
+// Maps spreadsheet event column names (lowercase) → internal field names
+const EVENT_COLUMN_ALIASES = {
+  'data': 'data',
+  'date': 'data',
+  'data do evento': 'data',
+  'data evento': 'data',
+  'nome_evento': 'nome_evento',
+  'nome evento': 'nome_evento',
+  'nome do evento': 'nome_evento',
+  'evento': 'nome_evento',
+  'title': 'nome_evento',
+  'título': 'nome_evento',
+  'assunto': 'nome_evento',
+  'summary': 'nome_evento',
+  'dono': 'dono',
+  'responsável': 'dono',
+  'responsavel': 'dono',
+  'owner': 'dono',
+  'organizador': 'dono',
+  'criado por': 'dono',
+};
 
 export class ImportService {
 
@@ -64,11 +119,16 @@ export class ImportService {
       return { valid: [], invalid: [], missingColumns: [] };
     }
 
-    // Check for missing columns using the first row's keys
+    // Check for missing columns using flexible alias matching
     const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim());
-    const missingColumns = REQUIRED_PROJECT_COLUMNS.filter(col =>
-      !headers.includes(col.toLowerCase())
-    );
+    const missingColumns = REQUIRED_PROJECT_COLUMNS.filter(col => {
+      const colLower = col.toLowerCase();
+      // Direct match
+      if (headers.includes(colLower)) return false;
+      // Check if any header maps to the same internal name as this required column
+      const requiredInternal = COLUMN_ALIASES[colLower] || colLower;
+      return !headers.some(h => (COLUMN_ALIASES[h] || h) === requiredInternal);
+    });
 
     if (missingColumns.length > 0) {
       return { valid: [], invalid: [], missingColumns };
@@ -79,15 +139,15 @@ export class ImportService {
 
     rows.forEach((row, index) => {
       const lineNumber = index + 2; // +2 because row 1 is header, data starts at row 2
-      const normalizedRow = this._normalizeRowKeys(row);
+      const normalizedRow = this._mapRowToInternal(row);
 
       // Check required fields - código and nome are mandatory for a valid row
       if (!normalizedRow['código'] && normalizedRow['código'] !== 0) {
-        invalid.push({ line: lineNumber, reason: 'Campo "código" está vazio' });
+        invalid.push({ line: lineNumber, reason: 'Campo "Cód" está vazio' });
         return;
       }
       if (!normalizedRow['nome']) {
-        invalid.push({ line: lineNumber, reason: 'Campo "nome" está vazio' });
+        invalid.push({ line: lineNumber, reason: 'Campo "Nome" está vazio' });
         return;
       }
 
@@ -205,11 +265,16 @@ export class ImportService {
       return { valid: [], invalid: [], missingColumns: [] };
     }
 
-    // Check for missing columns using the first row's keys
+    // Check for missing columns using flexible alias matching
     const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim());
-    const missingColumns = REQUIRED_EVENT_COLUMNS.filter(col =>
-      !headers.includes(col.toLowerCase())
-    );
+    const missingColumns = REQUIRED_EVENT_COLUMNS.filter(col => {
+      const colLower = col.toLowerCase();
+      // Direct match
+      if (headers.includes(colLower)) return false;
+      // Check if any header maps to the same internal name
+      const requiredInternal = EVENT_COLUMN_ALIASES[colLower] || colLower;
+      return !headers.some(h => (EVENT_COLUMN_ALIASES[h] || h) === requiredInternal);
+    });
 
     if (missingColumns.length > 0) {
       return { valid: [], invalid: [], missingColumns };
@@ -220,7 +285,7 @@ export class ImportService {
 
     rows.forEach((row, index) => {
       const lineNumber = index + 2; // +2: row 1 is header
-      const normalizedRow = this._normalizeRowKeys(row);
+      const normalizedRow = this._mapEventRowToInternal(row);
 
       // Validate required fields
       if (!normalizedRow['data']) {
@@ -321,6 +386,78 @@ export class ImportService {
       normalized[key.toLowerCase().trim()] = value;
     });
     return normalized;
+  }
+
+  /**
+   * Map an event spreadsheet row to internal field names using EVENT_COLUMN_ALIASES.
+   * @param {object} row - Raw row from SheetJS
+   * @returns {object} Row with internal field names
+   */
+  _mapEventRowToInternal(row) {
+    const mapped = {};
+    Object.entries(row).forEach(([key, value]) => {
+      const lowerKey = key.toLowerCase().trim();
+      const internalName = EVENT_COLUMN_ALIASES[lowerKey] || lowerKey;
+      mapped[internalName] = value;
+    });
+    return mapped;
+  }
+
+  /**
+   * Map a spreadsheet row to internal field names using COLUMN_ALIASES.
+   * This handles the DOit spreadsheet column names like "Cód", "E-mail do Cliente", etc.
+   * If fim_capacitacao is missing, calculates it as inicio_capacitacao + 5 days.
+   * @param {object} row - Raw row from SheetJS
+   * @returns {object} Row with internal field names
+   */
+  _mapRowToInternal(row) {
+    const mapped = {};
+    Object.entries(row).forEach(([key, value]) => {
+      const lowerKey = key.toLowerCase().trim();
+      const internalName = COLUMN_ALIASES[lowerKey] || lowerKey;
+      mapped[internalName] = value;
+    });
+
+    // If fim_capacitacao is empty/absent, calculate as inicio_capacitacao + 5 days
+    if (!mapped['fim_capacitacao'] && mapped['inicio_capacitacao']) {
+      mapped['fim_capacitacao'] = this._addDays(mapped['inicio_capacitacao'], 5);
+    }
+
+    return mapped;
+  }
+
+  /**
+   * Add days to a date string. Supports formats: DD/MM/YYYY, YYYY-MM-DD, or Excel serial number.
+   * @param {string|number} dateValue - The date to add days to
+   * @param {number} days - Number of days to add
+   * @returns {string} Resulting date in DD/MM/YYYY format, or empty string if invalid
+   */
+  _addDays(dateValue, days) {
+    if (!dateValue) return '';
+    let date;
+
+    if (typeof dateValue === 'number') {
+      // Excel serial date number (days since 1900-01-01, with Excel's 1900 leap year bug)
+      date = new Date((dateValue - 25569) * 86400 * 1000);
+    } else {
+      const str = String(dateValue).trim();
+      // Try DD/MM/YYYY
+      const brMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (brMatch) {
+        date = new Date(Number(brMatch[3]), Number(brMatch[2]) - 1, Number(brMatch[1]));
+      } else {
+        // Try ISO or other parseable format
+        date = new Date(str);
+      }
+    }
+
+    if (!date || isNaN(date.getTime())) return '';
+
+    date.setDate(date.getDate() + days);
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
   }
 
   /**
