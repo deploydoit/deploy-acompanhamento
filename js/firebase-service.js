@@ -9,13 +9,13 @@
  * You can find these in the Firebase Console → Project Settings → Your apps → Web app.
  */
 const FIREBASE_CONFIG = {
-  apiKey: 'YOUR_API_KEY',                           // ← Substituir pela sua API key
-  authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',    // ← Substituir pelo seu authDomain
-  databaseURL: 'https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com', // ← Substituir pela URL do RTDB
-  projectId: 'YOUR_PROJECT_ID',                     // ← Substituir pelo seu project ID
-  storageBucket: 'YOUR_PROJECT_ID.appspot.com',     // ← Substituir pelo seu storageBucket
-  messagingSenderId: 'YOUR_SENDER_ID',              // ← Substituir pelo seu sender ID
-  appId: 'YOUR_APP_ID'                              // ← Substituir pelo seu app ID
+  apiKey: 'AIzaSyCz34oVdZdm2OHxwulgQktzfMK0h3Gx_D4',
+  authDomain: 'deploy-acompanhamento.firebaseapp.com',
+  databaseURL: 'https://deploy-acompanhamento-default-rtdb.firebaseio.com',
+  projectId: 'deploy-acompanhamento',
+  storageBucket: 'deploy-acompanhamento.firebasestorage.app',
+  messagingSenderId: '979941410984',
+  appId: '1:979941410984:web:ebcea766dacaf667059a9d'
 };
 
 export class FirebaseService {
