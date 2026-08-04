@@ -728,15 +728,34 @@ export class ImportService {
     // Infer channel from event name or default to null
     const canal = this._inferChannel(eventName);
 
+    // Check if event date is in the past → mark as already done
+    const isPast = this._isDateInPast(data);
+
     return {
       data: data,
-      contato_realizado: 'nao',
+      contato_realizado: isPast ? 'sim' : 'nao',
       canal: canal,
       retorno: '',
-      ocorreu: 'nao',
+      ocorreu: isPast ? 'sim' : 'nao',
       detectado_agenda: true,
       dono: dono
     };
+  }
+
+  /**
+   * Check if a date string (DD/MM/YYYY) is in the past (before today).
+   * @param {string} dateStr - Date in DD/MM/YYYY format
+   * @returns {boolean}
+   */
+  _isDateInPast(dateStr) {
+    if (!dateStr) return false;
+    const str = String(dateStr).trim();
+    const match = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!match) return false;
+    const eventDate = new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return eventDate <= today;
   }
 
   /**
