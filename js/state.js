@@ -11,7 +11,19 @@
  */
 export function calculateExpectedDates(fimCapacitacao) {
   if (!fimCapacitacao) return [];
-  const base = new Date(fimCapacitacao + 'T00:00:00');
+
+  let base;
+  const str = String(fimCapacitacao).trim();
+
+  // Try DD/MM/YYYY format (Brazilian)
+  const brMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (brMatch) {
+    base = new Date(Number(brMatch[3]), Number(brMatch[2]) - 1, Number(brMatch[1]));
+  } else {
+    // Try ISO or other parseable format
+    base = new Date(str + (str.includes('T') ? '' : 'T00:00:00'));
+  }
+
   if (isNaN(base.getTime())) return [];
 
   const dates = [];

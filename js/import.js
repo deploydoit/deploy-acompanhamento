@@ -526,6 +526,14 @@ export class ImportService {
       mapped[internalName] = value;
     });
 
+    // Normalize date fields to DD/MM/YYYY
+    if (mapped['inicio_capacitacao']) {
+      mapped['inicio_capacitacao'] = this._normalizeDateFormat(mapped['inicio_capacitacao']);
+    }
+    if (mapped['fim_capacitacao']) {
+      mapped['fim_capacitacao'] = this._normalizeDateFormat(mapped['fim_capacitacao']);
+    }
+
     // If fim_capacitacao is empty/absent, calculate as inicio_capacitacao + 5 days
     if (!mapped['fim_capacitacao'] && mapped['inicio_capacitacao']) {
       mapped['fim_capacitacao'] = this._addDays(mapped['inicio_capacitacao'], 5);
