@@ -40,9 +40,18 @@ class App {
     // Check for member selection before anything else
     this._ensureMemberSelected();
 
-    // Initialize core services
-    this.firebaseService = new FirebaseService();
-    this.firebaseService.enablePersistence();
+    // Show app immediately — never leave loading spinner
+    this._showApp();
+
+    try {
+      // Initialize core services
+      this.firebaseService = new FirebaseService();
+      this.firebaseService.enablePersistence();
+    } catch (e) {
+      console.warn('[App] Firebase init failed, running in local-only mode:', e.message);
+      // Create a stub firebase service that stores locally
+      this.firebaseService = { writeClient: () => Promise.resolve(), writeFollowUp: () => Promise.resolve(), setLastImportDate: () => Promise.resolve(), subscribeToChanges: () => () => {}, enablePersistence: () => {} };
+    }
 
     this.stateManager = new StateManager(this.firebaseService);
     this.filterEngine = new FilterEngine();
@@ -55,11 +64,12 @@ class App {
     // Wire conflict events (Task 11.2)
     this._wireConflictEvents();
 
-    // Start Firebase sync (non-blocking — show app immediately)
-    this.stateManager.startSync();
-
-    // Show app immediately, don't wait for Firebase
-    this._showApp();
+    // Start Firebase sync (non-blocking)
+    try {
+      this.stateManager.startSync();
+    } catch (e) {
+      console.warn('[App] Firebase sync failed:', e.message);
+    }
 
     // Restore session filters
     const savedFilters = this.filterEngine.restoreFilters();
