@@ -42,29 +42,66 @@ const COLUMN_ALIASES = {
 };
 
 // Required columns for event import
-// Accepts common variations via EVENT_COLUMN_ALIASES
-const REQUIRED_EVENT_COLUMNS = ['data', 'nome_evento', 'dono'];
+// Only require "De" (date) + "Nome" (event name). "Dono" is optional.
+// The DOit agenda export uses: De, Hora, Até, Hora, Agendas, Nome, Dono, Descrição, Contatos, Projeto, Etapa 1...
+const REQUIRED_EVENT_COLUMNS = ['data', 'nome_evento'];
 
 // Maps spreadsheet event column names (lowercase) → internal field names
+// Supports: DOit Agenda export, Google Calendar export, Outlook export, and custom formats
 const EVENT_COLUMN_ALIASES = {
+  // Data (date) - "De" is the DOit agenda export column
+  'de': 'data',
   'data': 'data',
   'date': 'data',
   'data do evento': 'data',
   'data evento': 'data',
+  'start date': 'data',
+  'data de início': 'data',
+  'data início': 'data',
+  'data inicio': 'data',
+  'início': 'data',
+  'inicio': 'data',
+  // Nome do evento (event name/subject) - "Nome" is the DOit agenda export column
+  'nome': 'nome_evento',
   'nome_evento': 'nome_evento',
   'nome evento': 'nome_evento',
   'nome do evento': 'nome_evento',
   'evento': 'nome_evento',
   'title': 'nome_evento',
   'título': 'nome_evento',
+  'titulo': 'nome_evento',
   'assunto': 'nome_evento',
   'summary': 'nome_evento',
+  'subject': 'nome_evento',
+  // Dono (owner/organizer) - "Dono" is the DOit agenda export column
   'dono': 'dono',
   'responsável': 'dono',
   'responsavel': 'dono',
   'owner': 'dono',
   'organizador': 'dono',
+  'organizer': 'dono',
   'criado por': 'dono',
+  'created by': 'dono',
+  // Extra fields from DOit agenda export (optional, preserved if present)
+  'descrição': 'descricao',
+  'descricao': 'descricao',
+  'description': 'descricao',
+  'contatos': 'contatos',
+  'projeto': 'projeto',
+  'agendas': 'agendas',
+  'até': 'data_fim',
+  'end date': 'data_fim',
+  'data fim': 'data_fim',
+  'data de término': 'data_fim',
+  'hora': 'hora_inicio',
+  'hora_1': 'hora_fim',
+  'start time': 'hora_inicio',
+  'horário': 'hora_inicio',
+  'location': 'local',
+  'local': 'local',
+  'etapa 1': 'etapa1',
+  'etapa 1.1': 'etapa1_1',
+  'etapa 1.1.1': 'etapa1_1_1',
 };
 
 export class ImportService {
@@ -297,6 +334,16 @@ export class ImportService {
         return;
       }
 
+      // Default "dono" to empty if not present
+      if (!normalizedRow['dono']) {
+        normalizedRow['dono'] = '';
+      }
+
+      // Normalize date format if it's a Google Calendar style date (MM/DD/YYYY → DD/MM/YYYY)
+      if (normalizedRow['data']) {
+        normalizedRow['data'] = this._normalizeDateFormat(normalizedRow['data']);
+      }
+
       valid.push(normalizedRow);
     });
 
@@ -327,7 +374,12 @@ export class ImportService {
 
     (events || []).forEach(event => {
       const eventName = event['nome_evento'] || '';
-      const slug = this._extractSlugFromEventName(eventName);
+      const projeto = event['projeto'] || '';
+      // Try extracting slug from event name first, then from projeto field
+      let slug = this._extractSlugFromEventName(eventName);
+      if (!slug && projeto) {
+        slug = this._extractSlugFromEventName(projeto);
+      }
 
       if (!slug) {
         ignorados.push(event);
@@ -356,6 +408,56 @@ export class ImportService {
   }
 
   // ─── Private Helpers ────────────────────────────────────────────────────────
+
+  /**
+   * Normalize date format. Handles MM/DD/YYYY (US) → DD/MM/YYYY (BR) conversion
+   * and also passes through DD/MM/YYYY as-is.
+   * The DOit export uses M/D/YY or M/D/YYYY format (US style).
+   * @param {string|number} dateValue
+   * @returns {string} Date in DD/MM/YYYY format
+   */
+  _normalizeDateFormat(dateValue) {
+    if (!dateValue) return '';
+    if (typeof dateValue === 'number') {
+      // Excel serial date
+      const date = new Date((dateValue - 25569) * 86400 * 1000);
+      if (isNaN(date.getTime())) return '';
+      const dd = String(date.getDate()).padStart(2, '0');
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const yyyy = date.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    }
+    const str = String(dateValue).trim();
+    // The DOit agenda export uses M/D/YY or M/D/YYYY (US format)
+    const slashMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (slashMatch) {
+      let [, part1, part2, yearPart] = slashMatch;
+      let year = Number(yearPart);
+      if (year < 100) year += 2000; // 26 → 2026
+      // Determine if it's MM/DD/YYYY (US) or DD/MM/YYYY (BR)
+      // Heuristic: if part1 > 12, it must be DD/MM/YYYY (day first)
+      // If part2 > 12, it must be MM/DD/YYYY (month first → US)
+      // Otherwise assume US format (M/D/YYYY) since DOit exports in US format
+      const p1 = Number(part1);
+      const p2 = Number(part2);
+      if (p1 > 12) {
+        // Already DD/MM/YYYY
+        return `${String(p1).padStart(2, '0')}/${String(p2).padStart(2, '0')}/${year}`;
+      } else if (p2 > 12) {
+        // MM/DD/YYYY → convert to DD/MM/YYYY
+        return `${String(p2).padStart(2, '0')}/${String(p1).padStart(2, '0')}/${year}`;
+      } else {
+        // Ambiguous — assume US format (MM/DD/YYYY) since the DOit export uses it
+        return `${String(p2).padStart(2, '0')}/${String(p1).padStart(2, '0')}/${year}`;
+      }
+    }
+    // Try ISO format
+    const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+    }
+    return str;
+  }
 
   /**
    * Read a File as ArrayBuffer (works in browser).
@@ -502,8 +604,9 @@ export class ImportService {
   }
 
   /**
-   * Extract project slug from event name.
-   * Event format: "[project_slug] Acompanhamento" or "[slug] ..."
+   * Extract project slug from event name or project field.
+   * DOit agenda format: "[project_slug] Acompanhamento" or Nome: "[slug] ..."
+   * Also checks the 'projeto' field which contains "Company Name [slug]"
    * @param {string} eventName
    * @returns {string|null}
    */

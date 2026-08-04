@@ -335,10 +335,9 @@ describe('ImportService', () => {
     });
 
     it('should detect missing event columns', () => {
-      const rows = [{ 'data': '30/07/2026' }]; // missing nome_evento, dono
+      const rows = [{ 'data': '30/07/2026' }]; // missing nome_evento
       const result = service.validateEventsData(rows);
       expect(result.missingColumns).toContain('nome_evento');
-      expect(result.missingColumns).toContain('dono');
     });
 
     it('should validate rows with valid data', () => {
