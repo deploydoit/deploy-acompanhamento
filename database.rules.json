@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "clients": {
+      ".read": true,
+      ".write": true
+    },
+    "metadata": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}

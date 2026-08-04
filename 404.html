@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Acompanhamento de Clientes</title>
+  <script>
+    // GitHub Pages SPA routing fallback
+    // Redirects all 404 paths to index.html with the path as a hash route
+    (function () {
+      var path = window.location.pathname;
+      var search = window.location.search;
+      var hash = window.location.hash;
+
+      // Redirect to index.html preserving the path as hash
+      var redirectPath = '/' + (path ? '#' + path : '') + (search || '') + (hash || '');
+      window.location.replace(redirectPath);
+    })();
+  </script>
+</head>
+<body>
+  <p>Redirecionando...</p>
+</body>
+</html>

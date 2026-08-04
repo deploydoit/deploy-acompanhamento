@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Acompanhamento de Clientes</title>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Firebase SDK (compat for simpler usage) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+  <!-- SheetJS (xlsx) for import/export -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+
+  <!-- localForage for offline IndexedDB storage -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+</head>
+<body>
+  <!-- Fallback banner for CDN/SDK load failures -->
+  <div id="cdn-fallback-banner" class="banner banner--error" hidden>
+    Problema de conectividade — alguns recursos externos não puderam ser carregados.
+  </div>
+
+  <!-- Connection status banner -->
+  <div id="connection-banner" class="banner banner--warn" hidden>
+    Modo offline — alterações serão sincronizadas
+  </div>
+
+  <!-- Loading indicator -->
+  <div id="loading-indicator" class="loading">
+    <span class="loading__spinner"></span>
+    <span>Carregando dados...</span>
+  </div>
+
+  <!-- App shell -->
+  <div id="app" hidden>
+    <!-- Sidebar navigation (desktop) -->
+    <nav id="sidebar" class="sidebar">
+      <div class="sidebar__header">
+        <h1 class="sidebar__title">Acompanhamento</h1>
+      </div>
+      <ul class="sidebar__nav">
+        <li><a href="#/" class="sidebar__link sidebar__link--active" data-route="#/">Por cliente</a></li>
+        <li><a href="#/kanban" class="sidebar__link" data-route="#/kanban">Kanban</a></li>
+        <li><a href="#/agenda" class="sidebar__link" data-route="#/agenda">Agenda</a></li>
+        <li><a href="#/dashboard" class="sidebar__link" data-route="#/dashboard">Dashboard</a></li>
+      </ul>
+      <div class="sidebar__actions">
+        <button id="btn-import-projects" class="btn btn--secondary">Importar Projetos</button>
+        <button id="btn-import-events" class="btn btn--secondary">Importar Eventos</button>
+        <button id="btn-export" class="btn btn--primary">Exportar para Excel</button>
+      </div>
+    </nav>
+
+    <!-- Mobile hamburger menu -->
+    <header id="mobile-header" class="mobile-header">
+      <button id="hamburger-btn" class="hamburger" aria-label="Menu de navegação">
+        <span class="hamburger__line"></span>
+        <span class="hamburger__line"></span>
+        <span class="hamburger__line"></span>
+      </button>
+      <h1 class="mobile-header__title">Acompanhamento</h1>
+    </header>
+
+    <!-- Main content area -->
+    <main id="main-content" class="main">
+      <!-- Dashboard cards (always visible in header area) -->
+      <section id="dashboard-area" class="dashboard-area"></section>
+
+      <!-- Filter bar -->
+      <section id="filter-bar" class="filter-bar">
+        <input type="search" id="search-input" class="filter-bar__search" placeholder="Buscar cliente, projeto, líder, cidade...">
+        <div class="filter-bar__filters">
+          <select id="filter-leader" class="filter-bar__select">
+            <option value="">Todos os líderes</option>
+            <option value="Bruno Hideo Toyama">Bruno Hideo Toyama</option>
+            <option value="Isabela Soares">Isabela Soares</option>
+            <option value="Henrique Puertas Stefano">Henrique Puertas Stefano</option>
+            <option value="Ana Paula">Ana Paula</option>
+          </select>
+          <select id="filter-phase" class="filter-bar__select">
+            <option value="">Todas as fases</option>
+            <option value="Acompanhamento">Acompanhamento</option>
+            <option value="Produção">Produção</option>
+          </select>
+          <select id="filter-status" class="filter-bar__select">
+            <option value="">Todos os status</option>
+            <option value="zero">Não iniciados</option>
+            <option value="pendentes">Em andamento</option>
+            <option value="completos">Completos</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- View container (swapped by router) -->
+      <section id="view-container" class="view-container"></section>
+    </main>
+  </div>
+
+  <!-- App modules -->
+  <script type="module" src="js/app.js"></script>
+
+  <!-- CDN load check -->
+  <script>
+    (function checkCDN() {
+      const missing = [];
+      if (typeof firebase === 'undefined') missing.push('Firebase SDK');
+      if (typeof XLSX === 'undefined') missing.push('SheetJS');
+      if (typeof localforage === 'undefined') missing.push('localForage');
+      if (missing.length > 0) {
+        const banner = document.getElementById('cdn-fallback-banner');
+        if (banner) {
+          banner.textContent = 'Problema de conectividade — não foi possível carregar: ' + missing.join(', ');
+          banner.hidden = false;
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

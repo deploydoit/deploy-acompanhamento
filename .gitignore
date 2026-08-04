@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+functions/node_modules/
+
+# Coverage
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Test outputs
+*.log
+
+# Old monolithic panel (kept as reference but not deployed)
+painel-acompanhamento-clientes.html
