@@ -40,17 +40,13 @@ class App {
     // Check for member selection before anything else
     this._ensureMemberSelected();
 
-    // Show app immediately — never leave loading spinner
-    this._showApp();
-
     try {
       // Initialize core services
       this.firebaseService = new FirebaseService();
       this.firebaseService.enablePersistence();
     } catch (e) {
       console.warn('[App] Firebase init failed, running in local-only mode:', e.message);
-      // Create a stub firebase service that stores locally
-      this.firebaseService = { writeClient: () => Promise.resolve(), writeFollowUp: () => Promise.resolve(), setLastImportDate: () => Promise.resolve(), subscribeToChanges: () => () => {}, enablePersistence: () => {} };
+      this.firebaseService = { writeClient: () => Promise.resolve(), writeFollowUp: () => Promise.resolve(), setLastImportDate: () => Promise.resolve(), subscribeToChanges: () => () => {}, enablePersistence: () => {}, getLastImportDate: () => Promise.resolve(null) };
     }
 
     this.stateManager = new StateManager(this.firebaseService);
@@ -63,13 +59,6 @@ class App {
 
     // Wire conflict events (Task 11.2)
     this._wireConflictEvents();
-
-    // Start Firebase sync (non-blocking)
-    try {
-      this.stateManager.startSync();
-    } catch (e) {
-      console.warn('[App] Firebase sync failed:', e.message);
-    }
 
     // Restore session filters
     const savedFilters = this.filterEngine.restoreFilters();
@@ -105,8 +94,16 @@ class App {
     // Wire responsive navigation (Task 11.1)
     this._wireResponsiveNav();
 
-    // Handle initial route
+    // Show app and navigate BEFORE starting sync
+    this._showApp();
     this.router.navigate(window.location.hash || '#/');
+
+    // Start Firebase sync AFTER everything is ready
+    try {
+      this.stateManager.startSync();
+    } catch (e) {
+      console.warn('[App] Firebase sync failed:', e.message);
+    }
   }
 
   // ─── Views ─────────────────────────────────────────────────────────────────
