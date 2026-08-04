@@ -55,8 +55,11 @@ class App {
     // Wire conflict events (Task 11.2)
     this._wireConflictEvents();
 
-    // Start Firebase sync
-    await this.stateManager.startSync();
+    // Start Firebase sync (non-blocking — show app immediately)
+    this.stateManager.startSync();
+
+    // Show app immediately, don't wait for Firebase
+    this._showApp();
 
     // Restore session filters
     const savedFilters = this.filterEngine.restoreFilters();
@@ -91,9 +94,6 @@ class App {
 
     // Wire responsive navigation (Task 11.1)
     this._wireResponsiveNav();
-
-    // Hide loading, show app
-    this._showApp();
 
     // Handle initial route
     this.router.navigate(window.location.hash || '#/');
