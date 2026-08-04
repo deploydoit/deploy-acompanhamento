@@ -366,7 +366,7 @@ class App {
       } catch (e) { /* ignore */ }
 
       // Re-render the current view
-      if (this.router) this.router.render();
+      if (this.router) this.router.navigate(window.location.hash || '#/');
 
       // Show summary modal
       this._showSummaryModal('Importação de Projetos', summary);
