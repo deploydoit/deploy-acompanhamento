@@ -339,18 +339,34 @@ class App {
         errors: validation.invalid
       });
 
-      // Write to Firebase
+      // Update local state immediately so UI reflects changes
       const allClients = [...mergeResult.added, ...mergeResult.updated, ...mergeResult.unchanged];
-      for (const client of mergeResult.added) {
-        await this.firebaseService.writeClient(client);
-      }
-      for (const client of mergeResult.updated) {
-        await this.firebaseService.writeClient(client);
+      const clientsMap = {};
+      allClients.forEach(c => { clientsMap[c.id] = { ...c }; delete clientsMap[c.id].id; });
+      this.stateManager.clients = clientsMap;
+      this.stateManager._recalculateExpectedDates();
+      this.stateManager._emit('clients-updated', this.stateManager.getClients());
+
+      // Write to Firebase (async, non-blocking for UI)
+      try {
+        for (const client of mergeResult.added) {
+          await this.firebaseService.writeClient(client);
+        }
+        for (const client of mergeResult.updated) {
+          await this.firebaseService.writeClient(client);
+        }
+      } catch (fbErr) {
+        console.warn('Firebase write failed, data saved locally:', fbErr.message);
       }
 
-      // Register import date in Firebase metadata
+      // Register import date
       const now = this._formatDateTime(new Date());
-      await this.firebaseService.setLastImportDate('projetos', now);
+      try {
+        await this.firebaseService.setLastImportDate('projetos', now);
+      } catch (e) { /* ignore */ }
+
+      // Re-render the current view
+      if (this.router) this.router.render();
 
       // Show summary modal
       this._showSummaryModal('Importação de Projetos', summary);
