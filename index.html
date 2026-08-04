@@ -102,7 +102,17 @@
   </div>
 
   <!-- App modules -->
-  <script type="module" src="js/app.js?v=5"></script>
+  <script type="module" src="js/app.js?v=6"></script>
+
+  <!-- Failsafe: hide loading after 2 seconds no matter what -->
+  <script>
+    setTimeout(function() {
+      var l = document.getElementById('loading-indicator');
+      var a = document.getElementById('app');
+      if (l) l.hidden = true;
+      if (a) a.hidden = false;
+    }, 2000);
+  </script>
 
   <!-- CDN load check -->
   <script>
