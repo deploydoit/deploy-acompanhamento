@@ -373,8 +373,8 @@ class App {
           const { id, ...data } = c;
           updates[`clients/${id}`] = data;
         });
-        updates['metadata/lastImport/projetos'] = { date: now, by: 'Sistema (importação)' };
-        this.firebaseService.db.ref().update(updates);
+        await this.firebaseService.db.ref().update(updates);
+        await this.firebaseService.setLastImportDate('projetos', now);
       } catch (fbErr) {
         console.warn('Firebase batch write failed:', fbErr.message);
       }
@@ -442,8 +442,8 @@ class App {
             };
           }
         }
-        updates['metadata/lastImport/eventos'] = { date: now, by: 'Sistema (importação)' };
-        this.firebaseService.db.ref().update(updates);
+        await this.firebaseService.db.ref().update(updates);
+        await this.firebaseService.setLastImportDate('eventos', now);
       } catch (fbErr) {
         console.warn('Firebase batch write failed:', fbErr.message);
       }

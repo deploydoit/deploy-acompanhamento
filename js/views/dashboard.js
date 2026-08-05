@@ -104,14 +104,26 @@ function countAtrasados(clients) {
  * @returns {Array<{nome: string, count: number}>}
  */
 function getDistribuicaoLider(clients) {
+  const teamLeaders = ['bruno hideo toyama', 'isabela soares', 'henrique puertas stefano', 'ana paula'];
   const map = {};
+  let outros = 0;
   for (const client of clients) {
-    const lider = client.lider || 'Sem líder';
-    map[lider] = (map[lider] || 0) + 1;
+    const lider = client.lider || '';
+    const liderLower = lider.toLowerCase().trim();
+    const isTeam = teamLeaders.some(tl => liderLower.includes(tl));
+    if (isTeam) {
+      map[lider] = (map[lider] || 0) + 1;
+    } else {
+      outros++;
+    }
   }
-  return Object.entries(map)
+  const result = Object.entries(map)
     .map(([nome, count]) => ({ nome, count }))
     .sort((a, b) => b.count - a.count);
+  if (outros > 0) {
+    result.push({ nome: 'Outros Líderes', count: outros });
+  }
+  return result;
 }
 
 /**

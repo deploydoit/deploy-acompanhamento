@@ -423,6 +423,7 @@ export class ImportService {
    * Normalize date format. Handles MM/DD/YYYY (US) → DD/MM/YYYY (BR) conversion
    * and also passes through DD/MM/YYYY as-is.
    * The DOit export uses M/D/YY or M/D/YYYY format (US style).
+   * Used ONLY for event dates from the "De" column.
    * @param {string|number} dateValue
    * @returns {string} Date in DD/MM/YYYY format
    */
@@ -459,6 +460,48 @@ export class ImportService {
       } else {
         // Ambiguous — assume US format (MM/DD/YYYY) since the DOit export uses it
         return `${String(p2).padStart(2, '0')}/${String(p1).padStart(2, '0')}/${year}`;
+      }
+    }
+    // Try ISO format
+    const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+    }
+    return str;
+  }
+
+  /**
+   * Normalize date format for PROJECT dates (Início Capacitação, etc.).
+   * These are ALWAYS in Brazilian format (DD/MM/YYYY) in the DOit project spreadsheet.
+   * Unlike event dates, ambiguous cases default to BR format.
+   * @param {string|number} dateValue
+   * @returns {string} Date in DD/MM/YYYY format
+   */
+  _normalizeDateFormatBR(dateValue) {
+    if (!dateValue) return '';
+    if (typeof dateValue === 'number') {
+      // Excel serial date
+      const date = new Date((dateValue - 25569) * 86400 * 1000);
+      if (isNaN(date.getTime())) return '';
+      const dd = String(date.getDate()).padStart(2, '0');
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const yyyy = date.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    }
+    const str = String(dateValue).trim();
+    const slashMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (slashMatch) {
+      let [, part1, part2, yearPart] = slashMatch;
+      let year = Number(yearPart);
+      if (year < 100) year += 2000;
+      const p1 = Number(part1);
+      const p2 = Number(part2);
+      if (p2 > 12) {
+        // Part2 can't be a month → must be US format (MM/DD/YYYY), swap
+        return `${String(p2).padStart(2, '0')}/${String(p1).padStart(2, '0')}/${year}`;
+      } else {
+        // Ambiguous or clear BR — assume DD/MM/YYYY (project dates are Brazilian)
+        return `${String(p1).padStart(2, '0')}/${String(p2).padStart(2, '0')}/${year}`;
       }
     }
     // Try ISO format
@@ -530,12 +573,12 @@ export class ImportService {
       mapped[internalName] = value;
     });
 
-    // Normalize date fields to DD/MM/YYYY
+    // Normalize date fields to DD/MM/YYYY (project dates are ALWAYS BR format)
     if (mapped['inicio_capacitacao']) {
-      mapped['inicio_capacitacao'] = this._normalizeDateFormat(mapped['inicio_capacitacao']);
+      mapped['inicio_capacitacao'] = this._normalizeDateFormatBR(mapped['inicio_capacitacao']);
     }
     if (mapped['fim_capacitacao']) {
-      mapped['fim_capacitacao'] = this._normalizeDateFormat(mapped['fim_capacitacao']);
+      mapped['fim_capacitacao'] = this._normalizeDateFormatBR(mapped['fim_capacitacao']);
     }
 
     // If fim_capacitacao is empty/absent, calculate as inicio_capacitacao + 5 days

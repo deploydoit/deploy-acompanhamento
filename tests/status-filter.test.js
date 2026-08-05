@@ -21,32 +21,32 @@ describe('dashboard status filtering', () => {
   it('counts leaders ONLY for Acompanhamento/Produção', () => {
     const clients = [
       client('Ana Paula', NFC_ACOMP),
-      client('Bruno', NFC_PRODUCAO),
+      client('Bruno Hideo Toyama', NFC_PRODUCAO),
       client('Nicolas Mori', 'Cancelado'),
       client('Maria Eduarda', 'Finalizado'),
       client('Emerson', 'Implantação'),
     ];
     const names = calculateMetrics(clients).distribuicaoLider.map(l => l.nome);
-    expect(names).toEqual(['Ana Paula', 'Bruno']);
+    expect(names).toEqual(['Ana Paula', 'Bruno Hideo Toyama']);
   });
 
   it('handles NFD (decomposed) accents from XLSX', () => {
-    const names = calculateMetrics([client('Bruno', NFD_PRODUCAO)])
+    const names = calculateMetrics([client('Bruno Hideo Toyama', NFD_PRODUCAO)])
       .distribuicaoLider.map(l => l.nome);
-    expect(names).toEqual(['Bruno']);
+    expect(names).toEqual(['Bruno Hideo Toyama']);
   });
 
   it('handles non-breaking space and uppercase', () => {
     const names = calculateMetrics([
-      client('Bruno', WITH_NBSP),
-      client('Isabela', UPPER),
+      client('Bruno Hideo Toyama', WITH_NBSP),
+      client('Isabela Soares', UPPER),
     ]).distribuicaoLider.map(l => l.nome);
-    expect(names).toEqual(expect.arrayContaining(['Bruno', 'Isabela']));
+    expect(names).toEqual(expect.arrayContaining(['Bruno Hideo Toyama', 'Isabela Soares']));
     expect(names).toHaveLength(2);
   });
 
   it('excludes nao_entrar_em_contato from leader counts', () => {
-    const blocked = client('Bruno', NFC_PRODUCAO);
+    const blocked = client('Bruno Hideo Toyama', NFC_PRODUCAO);
     blocked.nao_entrar_em_contato = true;
     const names = calculateMetrics([
       client('Ana Paula', NFC_ACOMP),
