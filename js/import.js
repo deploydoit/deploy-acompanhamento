@@ -721,7 +721,8 @@ export class ImportService {
    * @returns {object}
    */
   _eventToFollowUpData(event) {
-    const data = event['data'] || '';
+    const rawData = event['data'] || '';
+    const data = this._normalizeDateFormat(rawData); // Normalize to DD/MM/YYYY
     const dono = event['dono'] || '';
     const eventName = event['nome_evento'] || '';
 

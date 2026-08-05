@@ -432,10 +432,9 @@ class App {
         const updates = {};
         for (const match of matchResult.vinculados) {
           if (match.slotIndex >= 0 && match.slotIndex < 4) {
-            const membro = localStorage.getItem('membro_selecionado') || 'Sistema';
             updates[`clients/${match.client.id}/followUps/${match.slotIndex}`] = {
               ...match.followUpData,
-              ultima_edicao: { membro, timestamp: Date.now() }
+              ultima_edicao: { membro: 'Sistema (importação)', timestamp: Date.now() }
             };
           }
         }
