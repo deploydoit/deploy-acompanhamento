@@ -70,6 +70,8 @@ function isCompleto(client) {
 /**
  * Count overdue follow-ups across all clients.
  * Atrasado: data_prevista < today AND ocorreu !== 'sim'
+ * Exception: if ALL 4 datas_previstas are in the past AND at least 1 ocorreu=sim,
+ * treat the client as fully completed (user confirmed these happened).
  * @param {Array} clients
  * @returns {number}
  */
@@ -81,6 +83,15 @@ function countAtrasados(clients) {
   for (const client of clients) {
     const datas = client.datas_previstas || [];
     const followUps = client.followUps || {};
+
+    // If client has at least 1 confirmed AND all dates are past → skip (assumed complete)
+    if (datas.length === 4 && countOcorreu(client) >= 1) {
+      const allPast = datas.every(d => {
+        const dt = new Date(d + 'T00:00:00');
+        return !isNaN(dt.getTime()) && dt < today;
+      });
+      if (allPast) continue;
+    }
 
     for (let i = 0; i < datas.length; i++) {
       const dataPrevista = new Date(datas[i] + 'T00:00:00');
@@ -163,7 +174,23 @@ export function calculateMetrics(clients) {
   for (const client of activeClients) {
     realizados += countOcorreu(client);
 
-    if (isCompleto(client)) {
+    // If all 4 datas_previstas are in the past AND at least 1 confirmed → treat as completo
+    const datas = client.datas_previstas || [];
+    const hasConfirmed = countOcorreu(client) >= 1;
+    let allPast = false;
+    if (datas.length === 4 && hasConfirmed) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      allPast = datas.every(d => {
+        const dt = new Date(d + 'T00:00:00');
+        return !isNaN(dt.getTime()) && dt < today;
+      });
+    }
+
+    if (allPast) {
+      completos++;
+      realizados += (4 - countOcorreu(client)); // count missing slots as done
+    } else if (isCompleto(client)) {
       completos++;
     } else if (isNaoIniciado(client)) {
       naoIniciados++;

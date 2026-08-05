@@ -186,14 +186,25 @@ describe('Feature: deploy-client-tracking-panel, Property 9: Dashboard metrics c
     );
   });
 
-  it('(c) progressRatio = sum(ocorreu="sim") / (total × 4)', () => {
+  it('(c) progressRatio = sum(ocorreu="sim") / (total × 4) — all-past clients count as 4/4', () => {
     fc.assert(
       fc.property(
         fc.array(clientArb, { minLength: 1, maxLength: 30 }),
         (clients) => {
           const metrics = calculateMetrics(clients);
-          const totalOcorreu = clients.reduce((sum, c) => sum + countOcorreu(c), 0);
-          const expectedRatio = totalOcorreu / (clients.length * 4);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          let totalRealizados = 0;
+          for (const c of clients) {
+            const ocorreu = countOcorreu(c);
+            const datas = c.datas_previstas || [];
+            const allPast = datas.length === 4 && ocorreu >= 1 && datas.every(d => {
+              const dt = new Date(d + 'T00:00:00');
+              return !isNaN(dt.getTime()) && dt < today;
+            });
+            totalRealizados += allPast ? 4 : ocorreu;
+          }
+          const expectedRatio = totalRealizados / (clients.length * 4);
           expect(metrics.progressRatio).toBeCloseTo(expectedRatio, 10);
         }
       ),
@@ -201,14 +212,14 @@ describe('Feature: deploy-client-tracking-panel, Property 9: Dashboard metrics c
     );
   });
 
-  it('(d) atrasados = count of slots where data_prevista < today AND ocorreu ≠ "sim"', () => {
+  it('(d) atrasados = count of overdue slots (all-past+confirmed clients excluded)', () => {
     fc.assert(
       fc.property(
         fc.array(clientArb, { minLength: 0, maxLength: 20 }),
         (clients) => {
           const metrics = calculateMetrics(clients);
 
-          // Manually calculate atrasados
+          // Manually calculate atrasados with the same business rule
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           let expectedAtrasados = 0;
@@ -216,12 +227,23 @@ describe('Feature: deploy-client-tracking-panel, Property 9: Dashboard metrics c
           for (const client of clients) {
             const datas = client.datas_previstas || [];
             const followUps = client.followUps || {};
+            const ocorreu = countOcorreu(client);
+
+            // Skip if all-past + at least 1 confirmed (treated as complete)
+            if (datas.length === 4 && ocorreu >= 1) {
+              const allPast = datas.every(d => {
+                const dt = new Date(d + 'T00:00:00');
+                return !isNaN(dt.getTime()) && dt < today;
+              });
+              if (allPast) continue;
+            }
+
             for (let i = 0; i < datas.length; i++) {
               const dataPrevista = new Date(datas[i] + 'T00:00:00');
               if (isNaN(dataPrevista.getTime())) continue;
               const slot = followUps[i];
-              const ocorreu = slot && slot.ocorreu === 'sim';
-              if (dataPrevista < today && !ocorreu) {
+              const slotOcorreu = slot && slot.ocorreu === 'sim';
+              if (dataPrevista < today && !slotOcorreu) {
                 expectedAtrasados++;
               }
             }
