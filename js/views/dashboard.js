@@ -135,14 +135,17 @@ export function calculateMetrics(clients) {
     };
   }
 
-  const total = clients.length;
+  // Exclude clients marked as "não entrar em contato"
+  const activeClients = clients.filter(c => !c.nao_entrar_em_contato);
+
+  const total = activeClients.length;
   const totalSlots = total * 4;
   let naoIniciados = 0;
   let emAndamento = 0;
   let completos = 0;
   let realizados = 0;
 
-  for (const client of clients) {
+  for (const client of activeClients) {
     realizados += countOcorreu(client);
 
     if (isCompleto(client)) {
@@ -152,15 +155,13 @@ export function calculateMetrics(clients) {
     } else if (isEmAndamento(client)) {
       emAndamento++;
     } else {
-      // Edge case: client with 0 ocorridos but no contato either
-      // This should already be covered by isNaoIniciado
       naoIniciados++;
     }
   }
 
   const progressRatio = totalSlots > 0 ? realizados / totalSlots : 0;
-  const atrasados = countAtrasados(clients);
-  const distribuicaoLider = getDistribuicaoLider(clients);
+  const atrasados = countAtrasados(activeClients);
+  const distribuicaoLider = getDistribuicaoLider(activeClients);
 
   return {
     total,
