@@ -121,6 +121,10 @@ class App {
       this.currentView.destroy();
     }
 
+    // Show dashboard on all pages except agenda
+    const dashArea = document.getElementById('dashboard-area');
+    if (dashArea) dashArea.hidden = (viewName === 'agenda');
+
     const clients = this.stateManager.getClients();
     const filters = this.stateManager.getFilters();
 
