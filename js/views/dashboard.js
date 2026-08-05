@@ -4,7 +4,7 @@
  * Requirements: 4.1, 4.2, 4.3, 4.4, 4.5
  */
 
-import { getActiveClients } from '../status.js';
+import { getActiveClients, isTrackedStatus } from '../status.js';
 
 /**
  * Count follow-ups where ocorreu === 'sim' for a client.
@@ -146,16 +146,19 @@ export function calculateMetrics(clients) {
     };
   }
 
-  // Only Acompanhamento/Produção, excluding clients blocked from contact.
-  // getActiveClients normalizes accents, so NFD/NFC and decorated values both match.
+  // Only Acompanhamento/Produção clients.
+  // getActiveClients = tracked status + not blocked.
+  // blockedClients = tracked status + blocked → treated as fully completed (4/4).
   const activeClients = getActiveClients(clients);
+  const allTracked = clients.filter(c => isTrackedStatus(c));
+  const blockedClients = allTracked.filter(c => c.nao_entrar_em_contato);
 
-  const total = activeClients.length;
+  const total = allTracked.length;
   const totalSlots = total * 4;
   let naoIniciados = 0;
   let emAndamento = 0;
-  let completos = 0;
-  let realizados = 0;
+  let completos = blockedClients.length; // blocked = auto-complete
+  let realizados = blockedClients.length * 4; // blocked = 4 realizados each
 
   for (const client of activeClients) {
     realizados += countOcorreu(client);
@@ -172,6 +175,7 @@ export function calculateMetrics(clients) {
   }
 
   const progressRatio = totalSlots > 0 ? realizados / totalSlots : 0;
+  // Atrasados only count active clients (blocked have no overdue)
   const atrasados = countAtrasados(activeClients);
   const distribuicaoLider = getDistribuicaoLider(activeClients);
 

@@ -45,14 +45,21 @@ describe('dashboard status filtering', () => {
     expect(names).toHaveLength(2);
   });
 
-  it('excludes nao_entrar_em_contato from leader counts', () => {
+  it('excludes nao_entrar_em_contato from leader counts but counts as completo', () => {
     const blocked = client('Bruno Hideo Toyama', NFC_PRODUCAO);
     blocked.nao_entrar_em_contato = true;
-    const names = calculateMetrics([
+    const m = calculateMetrics([
       client('Ana Paula', NFC_ACOMP),
       blocked,
-    ]).distribuicaoLider.map(l => l.nome);
+    ]);
+    // Blocked client excluded from leader distribution
+    const names = m.distribuicaoLider.map(l => l.nome);
     expect(names).toEqual(['Ana Paula']);
+    // But included in total as completo (4 realizados)
+    expect(m.total).toBe(2);
+    expect(m.completos).toBe(1);
+    expect(m.realizados).toBe(4);
+    expect(m.atrasados).toBe(0);
   });
 
   it('total/atrasados also ignore non-target statuses', () => {
