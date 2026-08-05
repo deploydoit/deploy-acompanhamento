@@ -210,13 +210,21 @@ export class ClientListView {
 
     const agendaNote = this._renderAgendaNote(client);
 
+    const naoContatarBadge = client.nao_entrar_em_contato
+      ? '<span class="badge badge--nao-contatar">NÃO ENTRAR EM CONTATO</span>'
+      : '';
+
+    const naoContatarBtn = client.nao_entrar_em_contato
+      ? `<button class="btn btn--sm btn--restore" data-client-id="${client.id}" data-action="restaurar-contato">Restaurar contato</button>`
+      : `<button class="btn btn--sm btn--muted" data-client-id="${client.id}" data-action="nao-contatar">⛔ Não entrar em contato</button>`;
+
     return `
-      <div class="client card${openClass}${urgencyBorder}" data-client-id="${client.id}">
+      <div class="client card${openClass}${urgencyBorder}${client.nao_entrar_em_contato ? ' nao-contatar' : ''}" data-client-id="${client.id}">
         <div class="client-head" data-client-id="${client.id}">
           <div class="ch-left">
             ${buildProgressRing(completed)}
             <div class="ch-name">
-              <div class="n1">${this._escapeHtml(client.nome || client.cliente || '')}</div>
+              <div class="n1">${this._escapeHtml(client.nome || client.cliente || '')} ${naoContatarBadge}</div>
               <div class="n2">
                 <span>${this._escapeHtml(client.lider || '')}</span>
                 <span>${this._escapeHtml(client.cidade || '')}${client.uf ? '/' + client.uf : ''}</span>
@@ -233,6 +241,7 @@ export class ClientListView {
           <div class="contact-info">
             ${client.email ? `<span>✉ <a href="mailto:${this._escapeHtml(client.email)}">${this._escapeHtml(client.email)}</a></span>` : ''}
             ${client.telefone ? `<span>☎ <a href="tel:${this._escapeHtml(client.telefone)}">${this._escapeHtml(client.telefone)}</a></span>` : ''}
+            ${naoContatarBtn}
           </div>
           ${agendaNote}
           <div class="slots">
@@ -380,6 +389,26 @@ export class ClientListView {
     const heads = this.container.querySelectorAll('.client-head');
     heads.forEach(head => {
       head.addEventListener('click', (e) => this._handleCardToggle(e));
+    });
+
+    // "Não entrar em contato" / "Restaurar" buttons
+    const naoContatarBtns = this.container.querySelectorAll('[data-action="nao-contatar"], [data-action="restaurar-contato"]');
+    naoContatarBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const clientId = btn.dataset.clientId;
+        const action = btn.dataset.action;
+        const newValue = action === 'nao-contatar';
+        // Update Firebase
+        if (this.stateManager && this.stateManager.firebaseService && this.stateManager.firebaseService.db) {
+          this.stateManager.firebaseService.db.ref(`clients/${clientId}/nao_entrar_em_contato`).set(newValue);
+        }
+        // Update local state
+        if (this.stateManager.clients[clientId]) {
+          this.stateManager.clients[clientId].nao_entrar_em_contato = newValue;
+          this.stateManager._emit('clients-updated', this.stateManager.getClients());
+        }
+      });
     });
 
     // Segmented button clicks

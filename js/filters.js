@@ -35,11 +35,16 @@ export class FilterEngine {
    */
   applyFilters(clients, filters) {
     if (!clients || !Array.isArray(clients)) return [];
-    if (!filters) return clients;
+    if (!filters) filters = {};
+
+    // By default, hide clients marked as "nao_entrar_em_contato" unless filter explicitly asks for them
+    let result = clients;
+    if (!filters.showNaoContatar) {
+      result = result.filter(client => !client.nao_entrar_em_contato);
+    }
 
     const predicates = this.combineFilters(filters);
-
-    let result = clients.filter(client => predicates.every(predicate => predicate(client)));
+    result = result.filter(client => predicates.every(predicate => predicate(client)));
 
     // Apply search on top of filters
     if (filters.search && filters.search.trim()) {
