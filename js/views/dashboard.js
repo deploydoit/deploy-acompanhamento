@@ -104,6 +104,9 @@ function countAtrasados(clients) {
 function getDistribuicaoLider(clients) {
   const map = {};
   for (const client of clients) {
+    // Only count clients with status Acompanhamento or Produção
+    const status = (client.status_projeto || '').toLowerCase().trim();
+    if (status !== 'acompanhamento' && status !== 'produção' && status !== 'producao') continue;
     const lider = client.lider || 'Sem líder';
     map[lider] = (map[lider] || 0) + 1;
   }

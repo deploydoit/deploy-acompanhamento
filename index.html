@@ -30,14 +30,8 @@
     Modo offline — alterações serão sincronizadas
   </div>
 
-  <!-- Loading indicator -->
-  <div id="loading-indicator" class="loading">
-    <span class="loading__spinner"></span>
-    <span>Carregando dados...</span>
-  </div>
-
   <!-- App shell -->
-  <div id="app" hidden>
+  <div id="app">
     <!-- Sidebar navigation (desktop) -->
     <nav id="sidebar" class="sidebar">
       <div class="sidebar__header">
@@ -101,17 +95,7 @@
   </div>
 
   <!-- App modules -->
-  <script type="module" src="js/app.js?v=10"></script>
-
-  <!-- Failsafe: hide loading after 2 seconds no matter what -->
-  <script>
-    setTimeout(function() {
-      var l = document.getElementById('loading-indicator');
-      var a = document.getElementById('app');
-      if (l) l.hidden = true;
-      if (a) a.hidden = false;
-    }, 2000);
-  </script>
+  <script type="module" src="js/app.js?v=11"></script>
 
   <!-- CDN load check -->
   <script>
