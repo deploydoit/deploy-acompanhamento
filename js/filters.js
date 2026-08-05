@@ -39,7 +39,7 @@ export class FilterEngine {
 
     // By default, hide clients marked as "nao_entrar_em_contato" unless filter explicitly asks for them
     let result = clients;
-    if (!filters.showNaoContatar) {
+    if (filters.status !== 'nao-contatar') {
       result = result.filter(client => !client.nao_entrar_em_contato);
     }
 
@@ -153,6 +153,8 @@ export class FilterEngine {
         return completed >= 1 && completed <= 3;
       case 'completos':
         return completed === 4;
+      case 'nao-contatar':
+        return !!client.nao_entrar_em_contato;
       case 'todos':
       default:
         return true;
