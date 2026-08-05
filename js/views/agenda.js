@@ -3,6 +3,8 @@
  * Monthly calendar with navigation, showing follow-up events per day
  */
 
+import { parseDate } from '../dates.js';
+
 export class AgendaView {
   constructor(container, stateManager) {
     this.container = container;
@@ -55,14 +57,13 @@ export class AgendaView {
     return events;
   }
 
+  /**
+   * Delegates to the shared parser, which builds dates from local components.
+   * `new Date('2026-08-20')` would be UTC midnight and render as the 19th in
+   * negative UTC offsets, putting events on the wrong calendar day.
+   */
   _parseDate(str) {
-    if (!str) return null;
-    // DD/MM/YYYY
-    const br = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (br) return new Date(Number(br[3]), Number(br[2]) - 1, Number(br[1]));
-    // ISO
-    const d = new Date(str);
-    return isNaN(d.getTime()) ? null : d;
+    return parseDate(str);
   }
 
   _buildCalendar(events) {

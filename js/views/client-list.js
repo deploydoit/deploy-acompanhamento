@@ -6,17 +6,16 @@
 
 import { FilterEngine } from '../filters.js';
 import { validateFollowUp } from '../state.js';
+import { toISODate, toBRDate } from '../dates.js';
 
 /**
- * Format ISO date (YYYY-MM-DD) to DD/MM/AAAA display format.
- * @param {string|null} isoDate
+ * Format a date for on-screen reading (DD/MM/AAAA).
+ * Accepts ISO or Brazilian input.
+ * @param {string|null} value
  * @returns {string}
  */
-function formatDateDisplay(isoDate) {
-  if (!isoDate) return '';
-  const parts = isoDate.split('-');
-  if (parts.length !== 3) return isoDate;
-  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+function formatDateDisplay(value) {
+  return toBRDate(value);
 }
 
 /**
@@ -302,6 +301,12 @@ export class ClientListView {
       ? '<span class="agenda-badge">detectado na agenda</span>'
       : '';
 
+    // The date input only accepts YYYY-MM-DD; anything else renders blank.
+    // Occurred -> the date it happened. Otherwise -> fall back to the forecast.
+    const dataContato = slot.data
+      ? toISODate(slot.data)
+      : toISODate(dataPrevista);
+
     // Date prevista display
     let dataPrevistaHtml;
     if (dataPrevista) {
@@ -339,7 +344,7 @@ export class ClientListView {
         
         <div class="slot-field">
           <label>Data do contato</label>
-          <input type="date" value="${slot.data || ''}"
+          <input type="date" value="${dataContato}"
             data-client-id="${client.id}" data-slot="${index}" data-field="data">
         </div>
 

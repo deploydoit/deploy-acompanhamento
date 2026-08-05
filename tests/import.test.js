@@ -394,7 +394,8 @@ describe('ImportService', () => {
       const clients = [createExistingClient()];
 
       const result = service.matchEventsToClients(events, clients);
-      expect(result.vinculados[0].followUpData.data).toBe('15/08/2026');
+      // Stored as ISO: <input type="date"> renders blank for any other format.
+      expect(result.vinculados[0].followUpData.data).toBe('2026-08-15');
       expect(result.vinculados[0].followUpData.detectado_agenda).toBe(true);
     });
 

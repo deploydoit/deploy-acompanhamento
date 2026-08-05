@@ -3,6 +3,9 @@
  * Handles import of Planilha_Projetos and Planilha_Eventos
  */
 
+import { isTrackedStatus } from './status.js';
+import { toISODate, isPastOrToday } from './dates.js';
+
 // Required columns for project import (mapped from DOit spreadsheet)
 // The spreadsheet uses different column names than our internal format.
 // We map them flexibly using COLUMN_ALIASES below.
@@ -188,9 +191,10 @@ export class ImportService {
         return;
       }
 
-      // Only import clients with status "Acompanhamento" or "Produção"
-      const status = (normalizedRow['status_projeto'] || '').toLowerCase().trim();
-      if (status !== 'acompanhamento' && status !== 'produção' && status !== 'producao' && status !== 'producao') {
+      // Only import clients with status "Acompanhamento" or "Produção".
+      // isTrackedStatus normalizes accents/whitespace — raw comparison misses
+      // NFD-encoded values that XLSX commonly produces.
+      if (!isTrackedStatus(normalizedRow)) {
         return; // Skip silently — not an error, just not relevant
       }
 
@@ -721,16 +725,16 @@ export class ImportService {
    * @returns {object}
    */
   _eventToFollowUpData(event) {
-    const rawData = event['data'] || '';
-    const data = this._normalizeDateFormat(rawData); // Normalize to DD/MM/YYYY
+    // Store ISO: it is what <input type="date"> needs, and parseDate reads it back.
+    const data = toISODate(event['data']);
     const dono = event['dono'] || '';
     const eventName = event['nome_evento'] || '';
 
     // Infer channel from event name or default to null
     const canal = this._inferChannel(eventName);
 
-    // Check if event date is in the past → mark as already done
-    const isPast = this._isDateInPast(data);
+    // Event already happened -> record it as done.
+    const isPast = isPastOrToday(data);
 
     return {
       data: data,

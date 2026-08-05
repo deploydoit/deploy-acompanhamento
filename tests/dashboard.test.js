@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { DashboardView, calculateMetrics } from '../js/views/dashboard.js';
+import { toISODate } from '../js/dates.js';
 
 // ─── Minimal DOM mock for Node environment ─────────────────────────────────────
 
@@ -86,6 +87,10 @@ function createClient(overrides = {}) {
     id: 'c1',
     nome: 'Cliente Teste',
     lider: 'Ana Paula',
+    // Metrics only count Acompanhamento/Produção. These tests exercise the
+    // metric math, so fixtures carry a tracked status by default; the status
+    // filtering rule itself is covered by tests/status-filter.test.js.
+    status_projeto: 'Acompanhamento',
     followUps: {},
     datas_previstas: [],
     ...overrides
@@ -215,11 +220,11 @@ describe('calculateMetrics()', () => {
   it('should count atrasados correctly', () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayISO = yesterday.toISOString().split('T')[0];
+    const yesterdayISO = toISODate(yesterday);
 
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowISO = tomorrow.toISOString().split('T')[0];
+    const tomorrowISO = toISODate(tomorrow);
 
     const client = createClient({
       datas_previstas: [yesterdayISO, yesterdayISO, tomorrowISO, tomorrowISO],
@@ -335,7 +340,7 @@ describe('DashboardView', () => {
   it('should display atrasados count', () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayISO = yesterday.toISOString().split('T')[0];
+    const yesterdayISO = toISODate(yesterday);
 
     const client = createClient({
       datas_previstas: [yesterdayISO, yesterdayISO],

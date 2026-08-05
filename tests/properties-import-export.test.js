@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import fc from 'fast-check';
 import { ImportService } from '../js/import.js';
 import { ExportService } from '../js/export.js';
+import { toISODate } from '../js/dates.js';
 
 // ─── Global XLSX mock ──────────────────────────────────────────────────────────
 
@@ -407,7 +408,10 @@ describe('Feature: deploy-client-tracking-panel, Property 3: Event-to-client mat
           const result = service.matchEventsToClients(events, clients);
 
           expect(result.vinculados.length).toBe(1);
-          expect(result.vinculados[0].followUpData.data).toBe(eventDate);
+          // The event date is normalized to ISO on the way in, because
+          // <input type="date"> silently blanks anything else. Assert the
+          // normalized form rather than the raw generated string.
+          expect(result.vinculados[0].followUpData.data).toBe(toISODate(eventDate));
           expect(result.vinculados[0].followUpData.detectado_agenda).toBe(true);
         }
       ),

@@ -4,6 +4,8 @@
  * Requirements: 4.1, 4.2, 4.3, 4.4, 4.5
  */
 
+import { getActiveClients } from '../status.js';
+
 /**
  * Count follow-ups where ocorreu === 'sim' for a client.
  * @param {object} client
@@ -104,9 +106,6 @@ function countAtrasados(clients) {
 function getDistribuicaoLider(clients) {
   const map = {};
   for (const client of clients) {
-    // Only count clients with status Acompanhamento or Produção
-    const status = (client.status_projeto || '').toLowerCase().trim();
-    if (status !== 'acompanhamento' && status !== 'produção' && status !== 'producao') continue;
     const lider = client.lider || 'Sem líder';
     map[lider] = (map[lider] || 0) + 1;
   }
@@ -135,8 +134,9 @@ export function calculateMetrics(clients) {
     };
   }
 
-  // Exclude clients marked as "não entrar em contato"
-  const activeClients = clients.filter(c => !c.nao_entrar_em_contato);
+  // Only Acompanhamento/Produção, excluding clients blocked from contact.
+  // getActiveClients normalizes accents, so NFD/NFC and decorated values both match.
+  const activeClients = getActiveClients(clients);
 
   const total = activeClients.length;
   const totalSlots = total * 4;
